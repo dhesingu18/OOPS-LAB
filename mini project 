@@ -1,0 +1,149 @@
+import java.util.*;
+
+class Flight {
+    int flightNo;
+    String destination;
+    double price;
+
+    Flight(int flightNo, String destination, double price) {
+        this.flightNo = flightNo;
+        this.destination = destination;
+        this.price = price;
+    }
+
+    void displayFlight() {
+        System.out.println("Flight No: " + flightNo + ", Destination: " + destination + ", Price: ₹" + price);
+    }
+}
+
+class Passenger {
+    String name;
+    int age;
+    String contact;
+
+    Passenger(String name, int age, String contact) {
+        this.name = name;
+        this.age = age;
+        this.contact = contact;
+    }
+}
+
+class Booking {
+    Flight flight;
+    Passenger passenger;
+
+    Booking(Flight flight, Passenger passenger) {
+        this.flight = flight;
+        this.passenger = passenger;
+    }
+
+    void displayBooking() {
+        System.out.println("Booking Confirmed for " + passenger.name + " on Flight " + flight.flightNo);
+    }
+}
+
+public class FlightBookingSystem {
+    public static void main(String[] args) {
+        Scanner sc = new Scanner(System.in);
+        ArrayList<Booking> bookings = new ArrayList<>();
+
+        Flight[] flights = {
+            new Flight(101, "Chennai", 3500),
+            new Flight(102, "Delhi", 6500),
+            new Flight(103, "Mumbai", 5000)
+        };
+
+        int choice;
+        do {
+            System.out.println("\n--- Flight Booking System ---");
+            System.out.println("1. View Flights");
+            System.out.println("2. Book Ticket");
+            System.out.println("3. View Bookings");
+            System.out.println("4. Exit");
+            System.out.print("Enter your choice: ");
+            choice = sc.nextInt();
+            sc.nextLine();
+
+            switch (choice) {
+                case 1:
+                    for (Flight f : flights) f.displayFlight();
+                    break;
+                case 2:
+                    System.out.print("Enter your name: ");
+                    String name = sc.nextLine();
+                    System.out.print("Enter your age: ");
+                    int age = sc.nextInt();
+                    sc.nextLine();
+                    System.out.print("Enter contact: ");
+                    String contact = sc.nextLine();
+
+                    System.out.print("Enter Flight Number to book: ");
+                    int fno = sc.nextInt();
+                    Flight selected = null;
+                    for (Flight f : flights) {
+                        if (f.flightNo == fno) selected = f;
+                    }
+                    if (selected != null) {
+                        Passenger p = new Passenger(name, age, contact);
+                        Booking b = new Booking(selected, p);
+                        bookings.add(b);
+                        b.displayBooking();
+                    } else {
+                        System.out.println("Invalid flight number!");
+                    }
+                    break;
+                case 3:
+                    for (Booking b : bookings) b.displayBooking();
+                    break;
+                case 4:
+                    System.out.println("Thank you for using Flight Booking System!");
+                    break;
+                default:
+                    System.out.println("Invalid choice!");
+            }
+        } while (choice != 4);
+    }
+}
+
+
+
+
+output:
+
+--- Flight Booking System ---
+1. View Flights
+2. Book Ticket
+3. View Bookings
+4. Exit
+Enter your choice: 1
+Flight No: 101, Destination: Chennai, Price: ₹3500.0
+Flight No: 102, Destination: Delhi, Price: ₹6500.0
+Flight No: 103, Destination: Mumbai, Price: ₹5000.0
+
+--- Flight Booking System ---
+1. View Flights
+2. Book Ticket
+3. View Bookings
+4. Exit
+Enter your choice: 2
+Enter your name: DHESINGURAJA
+Enter your age: 25
+Enter contact: 9876543211
+Enter Flight Number to book: 101
+Booking Confirmed for DHESINGURAJA on Flight 101
+
+--- Flight Booking System ---
+1. View Flights
+2. Book Ticket
+3. View Bookings
+4. Exit
+Enter your choice: 3
+Booking Confirmed for DHESINGURAJA on Flight 101
+
+--- Flight Booking System ---
+1. View Flights
+2. Book Ticket
+3. View Bookings
+4. Exit
+Enter your choice: 4
+Thank you for using Flight Booking System!
