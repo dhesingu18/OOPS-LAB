@@ -1,3 +1,7 @@
+import javax.swing.*;
+import javax.swing.table.DefaultTableModel;
+import java.awt.*;
+import java.awt.event.*;
 import java.util.*;
 
 class Flight {
@@ -11,8 +15,8 @@ class Flight {
         this.price = price;
     }
 
-    void displayFlight() {
-        System.out.println("Flight No: " + flightNo + ", Destination: " + destination + ", Price: ₹" + price);
+    Object[] toRow() {
+        return new Object[]{flightNo, destination, price};
     }
 }
 
@@ -37,113 +41,121 @@ class Booking {
         this.passenger = passenger;
     }
 
-    void displayBooking() {
-        System.out.println("Booking Confirmed for " + passenger.name + " on Flight " + flight.flightNo);
+    String details() {
+        return passenger.name + " (Age: " + passenger.age + ") → Flight " + flight.flightNo + " to " + flight.destination;
     }
 }
 
-public class FlightBookingSystem {
-    public static void main(String[] args) {
-        Scanner sc = new Scanner(System.in);
-        ArrayList<Booking> bookings = new ArrayList<>();
+public class FlightBookingSystemGUI extends JFrame {
+    private final Flight[] flights = {
+        new Flight(101, "Chennai", 3500),
+        new Flight(102, "Delhi", 6500),
+        new Flight(103, "Mumbai", 5000)
+    };
+    private final java.util.List<Booking> bookings = new ArrayList<>();
 
-        Flight[] flights = {
-            new Flight(101, "Chennai", 3500),
-            new Flight(102, "Delhi", 6500),
-            new Flight(103, "Mumbai", 5000)
+    private JTable flightTable;
+    private DefaultTableModel flightTableModel;
+    private JTextArea bookingArea;
+
+    public FlightBookingSystemGUI() {
+        setTitle("✈ Flight Booking System");
+        setSize(700, 500);
+        setDefaultCloseOperation(EXIT_ON_CLOSE);
+        setLocationRelativeTo(null);
+        setLayout(new BorderLayout(10, 10));
+
+        // Top Label
+        JLabel title = new JLabel("Flight Booking System", SwingConstants.CENTER);
+        title.setFont(new Font("Arial", Font.BOLD, 22));
+        add(title, BorderLayout.NORTH);
+
+        // Table Panel
+        flightTableModel = new DefaultTableModel(new String[]{"Flight No", "Destination", "Price (₹)"}, 0);
+        for (Flight f : flights) {
+            flightTableModel.addRow(f.toRow());
+        }
+        flightTable = new JTable(flightTableModel);
+        add(new JScrollPane(flightTable), BorderLayout.CENTER);
+
+        // Bottom Panel
+        JPanel bottomPanel = new JPanel(new GridLayout(2, 1, 5, 5));
+
+        // Buttons
+        JPanel buttonPanel = new JPanel();
+        JButton bookBtn = new JButton("Book Flight");
+        JButton viewBookingsBtn = new JButton("View Bookings");
+        JButton exitBtn = new JButton("Exit");
+        buttonPanel.add(bookBtn);
+        buttonPanel.add(viewBookingsBtn);
+        buttonPanel.add(exitBtn);
+        bottomPanel.add(buttonPanel);
+
+        // Booking Area
+        bookingArea = new JTextArea(5, 50);
+        bookingArea.setEditable(false);
+        bottomPanel.add(new JScrollPane(bookingArea));
+
+        add(bottomPanel, BorderLayout.SOUTH);
+
+        // Button Actions
+        bookBtn.addActionListener(e -> openBookingForm());
+        viewBookingsBtn.addActionListener(e -> displayBookings());
+        exitBtn.addActionListener(e -> System.exit(0));
+
+        setVisible(true);
+    }
+
+    private void openBookingForm() {
+        int selectedRow = flightTable.getSelectedRow();
+        if (selectedRow == -1) {
+            JOptionPane.showMessageDialog(this, "Please select a flight to book.");
+            return;
+        }
+
+        Flight selectedFlight = flights[selectedRow];
+
+        JTextField nameField = new JTextField();
+        JTextField ageField = new JTextField();
+        JTextField contactField = new JTextField();
+
+        Object[] fields = {
+            "Passenger Name:", nameField,
+            "Age:", ageField,
+            "Contact:", contactField
         };
 
-        int choice;
-        do {
-            System.out.println("\n--- Flight Booking System ---");
-            System.out.println("1. View Flights");
-            System.out.println("2. Book Ticket");
-            System.out.println("3. View Bookings");
-            System.out.println("4. Exit");
-            System.out.print("Enter your choice: ");
-            choice = sc.nextInt();
-            sc.nextLine();
+        int result = JOptionPane.showConfirmDialog(this, fields, "Enter Passenger Details", JOptionPane.OK_CANCEL_OPTION);
+        if (result == JOptionPane.OK_OPTION) {
+            try {
+                String name = nameField.getText();
+                int age = Integer.parseInt(ageField.getText());
+                String contact = contactField.getText();
 
-            switch (choice) {
-                case 1:
-                    for (Flight f : flights) f.displayFlight();
-                    break;
-                case 2:
-                    System.out.print("Enter your name: ");
-                    String name = sc.nextLine();
-                    System.out.print("Enter your age: ");
-                    int age = sc.nextInt();
-                    sc.nextLine();
-                    System.out.print("Enter contact: ");
-                    String contact = sc.nextLine();
+                Passenger p = new Passenger(name, age, contact);
+                Booking b = new Booking(selectedFlight, p);
+                bookings.add(b);
 
-                    System.out.print("Enter Flight Number to book: ");
-                    int fno = sc.nextInt();
-                    Flight selected = null;
-                    for (Flight f : flights) {
-                        if (f.flightNo == fno) selected = f;
-                    }
-                    if (selected != null) {
-                        Passenger p = new Passenger(name, age, contact);
-                        Booking b = new Booking(selected, p);
-                        bookings.add(b);
-                        b.displayBooking();
-                    } else {
-                        System.out.println("Invalid flight number!");
-                    }
-                    break;
-                case 3:
-                    for (Booking b : bookings) b.displayBooking();
-                    break;
-                case 4:
-                    System.out.println("Thank you for using Flight Booking System!");
-                    break;
-                default:
-                    System.out.println("Invalid choice!");
+                JOptionPane.showMessageDialog(this, "✅ Booking Confirmed for " + name + " on Flight " + selectedFlight.flightNo);
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(this, "Invalid input! Please try again.");
             }
-        } while (choice != 4);
+        }
+    }
+
+    private void displayBookings() {
+        if (bookings.isEmpty()) {
+            bookingArea.setText("No bookings yet.");
+        } else {
+            StringBuilder sb = new StringBuilder("Confirmed Bookings:\n");
+            for (Booking b : bookings) {
+                sb.append("• ").append(b.details()).append("\n");
+            }
+            bookingArea.setText(sb.toString());
+        }
+    }
+
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(FlightBookingSystemGUI::new);
     }
 }
-
-
-
-
-output:
-
---- Flight Booking System ---
-1. View Flights
-2. Book Ticket
-3. View Bookings
-4. Exit
-Enter your choice: 1
-Flight No: 101, Destination: Chennai, Price: ₹3500.0
-Flight No: 102, Destination: Delhi, Price: ₹6500.0
-Flight No: 103, Destination: Mumbai, Price: ₹5000.0
-
---- Flight Booking System ---
-1. View Flights
-2. Book Ticket
-3. View Bookings
-4. Exit
-Enter your choice: 2
-Enter your name: DHESINGURAJA
-Enter your age: 25
-Enter contact: 9876543211
-Enter Flight Number to book: 101
-Booking Confirmed for DHESINGURAJA on Flight 101
-
---- Flight Booking System ---
-1. View Flights
-2. Book Ticket
-3. View Bookings
-4. Exit
-Enter your choice: 3
-Booking Confirmed for DHESINGURAJA on Flight 101
-
---- Flight Booking System ---
-1. View Flights
-2. Book Ticket
-3. View Bookings
-4. Exit
-Enter your choice: 4
-Thank you for using Flight Booking System!
