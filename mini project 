@@ -1,161 +1,247 @@
+Main GUI (FlightBookingGUI.java):
+
+
+
 import javax.swing.*;
-import javax.swing.table.DefaultTableModel;
+
 import java.awt.*;
+
 import java.awt.event.*;
-import java.util.*;
 
-class Flight {
-    int flightNo;
-    String destination;
-    double price;
+import java.sql.*;
 
-    Flight(int flightNo, String destination, double price) {
-        this.flightNo = flightNo;
-        this.destination = destination;
-        this.price = price;
-    }
 
-    Object[] toRow() {
-        return new Object[]{flightNo, destination, price};
-    }
-}
 
-class Passenger {
-    String name;
-    int age;
-    String contact;
+public class FlightBookingGUI extends JFrame {
 
-    Passenger(String name, int age, String contact) {
-        this.name = name;
-        this.age = age;
-        this.contact = contact;
-    }
-}
+    JTextField nameField, ageField, contactField;
 
-class Booking {
-    Flight flight;
-    Passenger passenger;
+    JComboBox<String> flightBox;
 
-    Booking(Flight flight, Passenger passenger) {
-        this.flight = flight;
-        this.passenger = passenger;
-    }
 
-    String details() {
-        return passenger.name + " (Age: " + passenger.age + ") → Flight " + flight.flightNo + " to " + flight.destination;
-    }
-}
 
-public class FlightBookingSystemGUI extends JFrame {
-    private final Flight[] flights = {
-        new Flight(101, "Chennai", 3500),
-        new Flight(102, "Delhi", 6500),
-        new Flight(103, "Mumbai", 5000)
-    };
-    private final java.util.List<Booking> bookings = new ArrayList<>();
+    public FlightBookingGUI() {
 
-    private JTable flightTable;
-    private DefaultTableModel flightTableModel;
-    private JTextArea bookingArea;
+        setTitle("Flight Booking System");
 
-    public FlightBookingSystemGUI() {
-        setTitle("✈ Flight Booking System");
-        setSize(700, 500);
-        setDefaultCloseOperation(EXIT_ON_CLOSE);
-        setLocationRelativeTo(null);
-        setLayout(new BorderLayout(10, 10));
+        setSize(400, 300);
 
-        // Top Label
-        JLabel title = new JLabel("Flight Booking System", SwingConstants.CENTER);
-        title.setFont(new Font("Arial", Font.BOLD, 22));
-        add(title, BorderLayout.NORTH);
+        setLayout(new GridLayout(6, 2));
 
-        // Table Panel
-        flightTableModel = new DefaultTableModel(new String[]{"Flight No", "Destination", "Price (₹)"}, 0);
-        for (Flight f : flights) {
-            flightTableModel.addRow(f.toRow());
-        }
-        flightTable = new JTable(flightTableModel);
-        add(new JScrollPane(flightTable), BorderLayout.CENTER);
 
-        // Bottom Panel
-        JPanel bottomPanel = new JPanel(new GridLayout(2, 1, 5, 5));
 
-        // Buttons
-        JPanel buttonPanel = new JPanel();
+        add(new JLabel("Passenger Name:"));
+
+        nameField = new JTextField();
+
+        add(nameField);
+
+
+
+        add(new JLabel("Age:"));
+
+        ageField = new JTextField();
+
+        add(ageField);
+
+
+
+        add(new JLabel("Contact:"));
+
+        contactField = new JTextField();
+
+        add(contactField);
+
+
+
+        add(new JLabel("Select Flight:"));
+
+        flightBox = new JComboBox<>(new String[]{"101 - Chennai", "102 - Delhi", "103 - Mumbai"});
+
+        add(flightBox);
+
+
+
         JButton bookBtn = new JButton("Book Flight");
-        JButton viewBookingsBtn = new JButton("View Bookings");
-        JButton exitBtn = new JButton("Exit");
-        buttonPanel.add(bookBtn);
-        buttonPanel.add(viewBookingsBtn);
-        buttonPanel.add(exitBtn);
-        bottomPanel.add(buttonPanel);
 
-        // Booking Area
-        bookingArea = new JTextArea(5, 50);
-        bookingArea.setEditable(false);
-        bottomPanel.add(new JScrollPane(bookingArea));
+        JButton viewBtn = new JButton("View Bookings");
 
-        add(bottomPanel, BorderLayout.SOUTH);
+        add(bookBtn);
 
-        // Button Actions
-        bookBtn.addActionListener(e -> openBookingForm());
-        viewBookingsBtn.addActionListener(e -> displayBookings());
-        exitBtn.addActionListener(e -> System.exit(0));
+        add(viewBtn);
+
+
+
+        bookBtn.addActionListener(e -> bookFlight());
+
+        viewBtn.addActionListener(e -> new ViewBookings());
+
+
+
+        setDefaultCloseOperation(EXIT_ON_CLOSE);
 
         setVisible(true);
+
     }
 
-    private void openBookingForm() {
-        int selectedRow = flightTable.getSelectedRow();
-        if (selectedRow == -1) {
-            JOptionPane.showMessageDialog(this, "Please select a flight to book.");
-            return;
+
+
+    void bookFlight() {
+
+        try {
+
+            Class.forName("com.mysql.cj.jdbc.Driver");
+
+            Connection con = DriverManager.getConnection("jdbc:mysql://localhost:3306/flightdb?useSSL=false&allowPublicKeyRetrieval=true", "root", "your_password");
+
+            String sql = "INSERT INTO bookings (flight_no, passenger_name, age, contact) VALUES (?, ?, ?, ?)";
+
+            PreparedStatement stmt = con.prepareStatement(sql);
+
+
+
+            String selected = (String) flightBox.getSelectedItem();
+
+            int flightNo = Integer.parseInt(selected.split(" ")[0]);
+
+
+
+            stmt.setInt(1, flightNo);
+
+            stmt.setString(2, nameField.getText());
+
+            stmt.setInt(3, Integer.parseInt(ageField.getText()));
+
+            stmt.setString(4, contactField.getText());
+
+
+
+            stmt.executeUpdate();
+
+            JOptionPane.showMessageDialog(this, "Booking Successful!");
+
+            con.close();
+
+        } catch (Exception ex) {
+
+            JOptionPane.showMessageDialog(this, "Booking Failed: " + ex.getMessage());
+
         }
 
-        Flight selectedFlight = flights[selectedRow];
-
-        JTextField nameField = new JTextField();
-        JTextField ageField = new JTextField();
-        JTextField contactField = new JTextField();
-
-        Object[] fields = {
-            "Passenger Name:", nameField,
-            "Age:", ageField,
-            "Contact:", contactField
-        };
-
-        int result = JOptionPane.showConfirmDialog(this, fields, "Enter Passenger Details", JOptionPane.OK_CANCEL_OPTION);
-        if (result == JOptionPane.OK_OPTION) {
-            try {
-                String name = nameField.getText();
-                int age = Integer.parseInt(ageField.getText());
-                String contact = contactField.getText();
-
-                Passenger p = new Passenger(name, age, contact);
-                Booking b = new Booking(selectedFlight, p);
-                bookings.add(b);
-
-                JOptionPane.showMessageDialog(this, "✅ Booking Confirmed for " + name + " on Flight " + selectedFlight.flightNo);
-            } catch (Exception ex) {
-                JOptionPane.showMessageDialog(this, "Invalid input! Please try again.");
-            }
-        }
     }
 
-    private void displayBookings() {
-        if (bookings.isEmpty()) {
-            bookingArea.setText("No bookings yet.");
-        } else {
-            StringBuilder sb = new StringBuilder("Confirmed Bookings:\n");
-            for (Booking b : bookings) {
-                sb.append("• ").append(b.details()).append("\n");
-            }
-            bookingArea.setText(sb.toString());
-        }
-    }
+
 
     public static void main(String[] args) {
-        SwingUtilities.invokeLater(FlightBookingSystemGUI::new);
+
+        new FlightBookingGUI();
+
     }
+
+}
+
+
+
+View Bookings (ViewBookings.java):
+
+
+
+import javax.swing.*;
+
+import javax.swing.table.DefaultTableModel;
+
+import java.awt.*;
+
+import java.sql.*;
+
+
+
+public class ViewBookings extends JFrame {
+
+    JTable table;
+
+
+
+    public ViewBookings() {
+
+        setTitle("View All Bookings");
+
+        setSize(500, 300);
+
+        setLayout(new BorderLayout());
+
+
+
+        table = new JTable();
+
+        add(new JScrollPane(table), BorderLayout.CENTER);
+
+        loadBookings();
+
+
+
+        setVisible(true);
+
+    }
+
+
+
+    void loadBookings() {
+
+        try {
+
+            Class.forName("com.mysql.cj.jdbc.Driver");
+
+            Connection con = DriverManager.getConnection("jdbc:mysql://localhost:3306/flightdb?useSSL=false&allowPublicKeyRetrieval=true", "root", "your_password");
+
+            Statement stmt = con.createStatement();
+
+            ResultSet rs = stmt.executeQuery("SELECT * FROM bookings");
+
+
+
+            DefaultTableModel model = new DefaultTableModel();
+
+            model.addColumn("ID");
+
+            model.addColumn("Flight No");
+
+            model.addColumn("Passenger Name");
+
+            model.addColumn("Age");
+
+            model.addColumn("Contact");
+
+
+
+            while (rs.next()) {
+
+                model.addRow(new Object[]{
+
+                    rs.getInt("id"),
+
+                    rs.getInt("flight_no"),
+
+                    rs.getString("passenger_name"),
+
+                    rs.getInt("age"),
+
+                    rs.getString("contact")
+
+                });
+
+            }
+
+            table.setModel(model);
+
+            con.close();
+
+        } catch (Exception e) {
+
+            JOptionPane.showMessageDialog(this, "Error: " + e.getMessage());
+
+        }
+
+    }
+
 }
